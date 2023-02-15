@@ -7,6 +7,7 @@ from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes, force_str
 from django.core.mail import EmailMessage
 from django.conf import settings
+from django.contrib.auth.models import auth
 
 from .models import CustomUser
 from .utils import account_activation_token
@@ -20,7 +21,6 @@ def signup(request):
         last_name = request.POST["last_name"]
         username = request.POST["username"]
         email = request.POST["email"]
-        password = request.POST["password"]
         password = request.POST["password"]
         confirm_password = request.POST["confirm_password"]
 
@@ -59,3 +59,17 @@ def signup(request):
             return redirect("signup")
     return render(request, "account/signup.html")
 
+
+def login_user(request):
+    if request.method == 'POST':
+        email = request.POST["email"]
+        password = request.POST["password"]
+
+        user = auth.authenticate(email=email, password=password)
+
+        if user is not None:
+            auth.login(request, user)
+            return redirect('users')
+
+    else:
+        return render(request, "account/login.html")
