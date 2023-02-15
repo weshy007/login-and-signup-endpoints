@@ -8,6 +8,7 @@ from django.utils.encoding import force_bytes, force_str
 from django.core.mail import EmailMessage
 from django.conf import settings
 from django.contrib.auth.models import auth
+from django.views import View
 
 from .models import CustomUser
 from .utils import account_activation_token
@@ -25,7 +26,7 @@ def signup(request):
         confirm_password = request.POST["confirm_password"]
 
         if password == confirm_password:
-            if CustomUser.objets.filter(username=username).exists():
+            if CustomUser.objects.filter(username=username).exists():
                 messages.info(request, "Username already taken")
                 return redirect('signup')
             elif CustomUser.objects.filter(email=email).exists():
@@ -73,3 +74,23 @@ def login_user(request):
 
     else:
         return render(request, "account/login.html")
+
+
+class ActivateAccount(View):
+    def get(self, request, uidb64, token, *args, **kwargs):
+        try:
+            uid = force_str(urlsafe_base64_decode(uidb64))
+            user = CustomUser.objects.get(pk=uid)
+        except(TypeError, ValueError, OverflowError, CustomUser.DoesNotExist):
+            user = None
+
+        if user is not None and account_activation_token.check_token(user, token):
+            user.is_active = True
+            user.save()
+
+            messages.success(request, {"Your account has been approved"})
+            return redirect("login")
+
+        else:
+            messages.warning(request, "The confirmation link was invalid or has been already used")
+            return redirect("signup")
